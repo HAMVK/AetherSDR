@@ -67,6 +67,8 @@ MainWindow::MainWindow(QWidget* parent)
             m_spectrum, &SpectrumWidget::updateSpectrum);
     connect(&m_radioModel, &RadioModel::panadapterInfoChanged,
             m_spectrum, &SpectrumWidget::setFrequencyRange);
+    connect(&m_radioModel, &RadioModel::panadapterLevelChanged,
+            m_spectrum, &SpectrumWidget::setDbmRange);
 
     // ── Audio level meter ──────────────────────────────────────────────────
     connect(&m_audio, &AudioEngine::levelChanged,

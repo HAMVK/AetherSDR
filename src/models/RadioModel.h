@@ -56,6 +56,8 @@ signals:
     void connectionError(const QString& msg);
     // Emitted when a panadapter's center frequency or bandwidth changes.
     void panadapterInfoChanged(double centerMhz, double bandwidthMhz);
+    // Emitted when the radio reports the panadapter's dBm display range.
+    void panadapterLevelChanged(float minDbm, float maxDbm);
 
 private slots:
     void onStatusReceived(const QString& object, const QMap<QString, QString>& kvs);
@@ -84,8 +86,10 @@ private:
     float   m_paTemp{0.0f};
     float   m_txPower{0.0f};
 
-    double m_panCenterMhz{14.225};
-    double m_panBandwidthMhz{0.200};
+    double  m_panCenterMhz{14.225};
+    double  m_panBandwidthMhz{0.200};
+    QString m_panId;             // e.g. "0x40000000", empty until first status
+    bool    m_panResized{false}; // true once we've sent the resize command
 
     QList<SliceModel*> m_slices;
 };

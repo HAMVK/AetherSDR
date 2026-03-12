@@ -37,9 +37,10 @@ public:
     explicit RadioConnection(QObject* parent = nullptr);
     ~RadioConnection() override;
 
-    ConnectionState state() const { return m_state; }
-    quint32 clientHandle() const  { return m_handle; }
-    bool isConnected() const { return m_state == ConnectionState::Connected; }
+    ConnectionState state() const       { return m_state; }
+    quint32 clientHandle() const        { return m_handle; }
+    bool isConnected() const            { return m_state == ConnectionState::Connected; }
+    QHostAddress radioAddress() const   { return m_socket.peerAddress(); }
 
     // Connect to a discovered radio
     void connectToRadio(const RadioInfo& info);

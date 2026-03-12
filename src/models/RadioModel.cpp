@@ -65,8 +65,11 @@ void RadioModel::onConnected()
     // Identify this client to the radio (cosmetic; error is non-fatal).
     m_connection.sendCommand("client program AetherSDR");
 
-    // Start the VITA-49 UDP listener and register our port with the radio.
-    // "client set udpport" must come after "client gui".
+    // Start the VITA-49 UDP listener.
+    // For SmartSDR v1.4 LAN: bind port 4991 and send a UDP registration packet
+    // to the radio so it learns our address. "client set udpport" is not supported
+    // on v1.4.0.0 (returns error 50001000).
+    m_panResized = false;
     if (!m_panStream.isRunning())
         m_panStream.start(&m_connection);
 
@@ -106,6 +109,8 @@ void RadioModel::onDisconnected()
 {
     qDebug() << "RadioModel: disconnected";
     m_panStream.stop();
+    m_panId.clear();
+    m_panResized = false;
     emit connectionStateChanged(false);
 }
 
@@ -153,7 +158,11 @@ void RadioModel::onStatusReceived(const QString& object,
     }
 
     // "display pan 0x40000000 center=14.1 bandwidth=0.2 ..."
+    static const QRegularExpression panRe(R"(^display pan\s+(0x[0-9A-Fa-f]+)$)");
     if (object.startsWith("display pan")) {
+        const auto m = panRe.match(object);
+        if (m.hasMatch() && m_panId.isEmpty())
+            m_panId = m.captured(1);
         handlePanadapterStatus(kvs);
         return;
     }
@@ -215,23 +224,39 @@ void RadioModel::handleMeterStatus(const QMap<QString, QString>& kvs)
 
 void RadioModel::handlePanadapterStatus(const QMap<QString, QString>& kvs)
 {
-    bool changed = false;
-    double center = m_panCenterMhz;
-    double bw     = m_panBandwidthMhz;
+    bool freqChanged  = false;
+    bool levelChanged = false;
 
     if (kvs.contains("center")) {
-        center = kvs["center"].toDouble();
-        changed = true;
+        m_panCenterMhz = kvs["center"].toDouble();
+        freqChanged = true;
     }
     if (kvs.contains("bandwidth")) {
-        bw = kvs["bandwidth"].toDouble();
-        changed = true;
+        m_panBandwidthMhz = kvs["bandwidth"].toDouble();
+        freqChanged = true;
     }
+    if (freqChanged)
+        emit panadapterInfoChanged(m_panCenterMhz, m_panBandwidthMhz);
 
-    if (changed) {
-        m_panCenterMhz    = center;
-        m_panBandwidthMhz = bw;
-        emit panadapterInfoChanged(center, bw);
+    if (kvs.contains("min_dbm") || kvs.contains("max_dbm")) {
+        const float minDbm = kvs.value("min_dbm", "-130").toFloat();
+        const float maxDbm = kvs.value("max_dbm", "-20").toFloat();
+        emit panadapterLevelChanged(minDbm, maxDbm);
+        levelChanged = true;
+    }
+    Q_UNUSED(levelChanged)
+
+    // On the first full panadapter status we know the pan ID.  Send a resize
+    // command to request a higher-resolution FFT (radio default is only 50 bins).
+    if (!m_panResized && !m_panId.isEmpty() && kvs.contains("x_pixels")
+        && m_connection.isConnected())
+    {
+        m_panResized = true;
+        // Request 1024 bins at 25 fps — gives ~190 Hz/bin at 200 kHz bandwidth.
+        const QString cmd = QString("display pan set %1 x_pixels=1024 y_pixels=384 fps=25")
+                                .arg(m_panId);
+        qDebug() << "RadioModel: requesting pan resize ->" << cmd;
+        m_connection.sendCommand(cmd);
     }
 }
 

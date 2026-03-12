@@ -58,8 +58,9 @@ void SliceModel::applyStatus(const QMap<QString, QString>& kvs)
     bool modeChanged_  = false;
     bool filterChanged_= false;
 
-    if (kvs.contains("freq")) {
-        const double f = kvs["freq"].toDouble();
+    // The radio sends the frequency as "RF_frequency" in status messages.
+    if (kvs.contains("RF_frequency")) {
+        const double f = kvs["RF_frequency"].toDouble();
         if (!qFuzzyCompare(m_frequency, f)) {
             m_frequency = f;
             freqChanged = true;

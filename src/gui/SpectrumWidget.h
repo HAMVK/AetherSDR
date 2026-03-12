@@ -27,6 +27,9 @@ public:
     // Feed a new FFT frame. bins are scaled dBm values.
     void updateSpectrum(const QVector<float>& binsDbm);
 
+    // Update the dBm range used for the waterfall colour map and spectrum Y axis.
+    void setDbmRange(float minDbm, float maxDbm);
+
     // Overlay: show a vertical line for the active slice at freqMhz
     void setSliceFrequency(double freqMhz);
 

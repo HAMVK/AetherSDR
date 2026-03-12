@@ -24,6 +24,15 @@ void SpectrumWidget::setFrequencyRange(double centerMhz, double bandwidthMhz)
     update();
 }
 
+void SpectrumWidget::setDbmRange(float minDbm, float maxDbm)
+{
+    m_wfMinDbm    = minDbm;
+    m_wfMaxDbm    = maxDbm;
+    m_refLevel    = maxDbm;
+    m_dynamicRange = maxDbm - minDbm;
+    update();
+}
+
 void SpectrumWidget::setSliceFrequency(double freqMhz)
 {
     m_sliceFreqMhz = freqMhz;
