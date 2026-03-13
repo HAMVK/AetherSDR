@@ -380,6 +380,15 @@ SliceModel* MainWindow::activeSlice() const
 
 void MainWindow::onFrequencyChanged(double mhz)
 {
+    // If the slice is locked, snap all GUI elements back to the current freq.
+    if (auto* s = activeSlice(); s && s->isLocked()) {
+        m_updatingFromModel = true;
+        m_freqDial->setFrequency(s->frequency());
+        m_spectrum->setSliceFrequency(s->frequency());
+        m_updatingFromModel = false;
+        return;
+    }
+
     m_spectrum->setSliceFrequency(mhz);
     if (!m_updatingFromModel) {
         if (auto* s = activeSlice())
