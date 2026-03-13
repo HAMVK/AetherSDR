@@ -39,6 +39,7 @@ public:
     bool isConnected() const;
     float paTemp()    const { return m_paTemp; }
     float txPower()   const { return m_txPower; }
+    QStringList antennaList() const { return m_antList; }
 
     QList<SliceModel*> slices() const { return m_slices; }
     SliceModel* slice(int id) const;
@@ -59,6 +60,8 @@ signals:
     void panadapterInfoChanged(double centerMhz, double bandwidthMhz);
     // Emitted when the radio reports the panadapter's dBm display range.
     void panadapterLevelChanged(float minDbm, float maxDbm);
+    // Emitted when the radio reports its antenna list (e.g. "ANT1,ANT2,RX_A,RX_B").
+    void antListChanged(QStringList ants);
 
 private slots:
     void onStatusReceived(const QString& object, const QMap<QString, QString>& kvs);
@@ -83,11 +86,12 @@ private:
     RadioConnection  m_connection;
     PanadapterStream m_panStream;
 
-    QString m_name;
-    QString m_model;
-    QString m_version;
-    float   m_paTemp{0.0f};
-    float   m_txPower{0.0f};
+    QString     m_name;
+    QString     m_model;
+    QString     m_version;
+    float       m_paTemp{0.0f};
+    float       m_txPower{0.0f};
+    QStringList m_antList;
 
     double  m_panCenterMhz{14.225};
     double  m_panBandwidthMhz{0.200};

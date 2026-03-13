@@ -35,6 +35,9 @@ public:
 
     // Getters — RX DSP state
     QString rxAntenna()   const { return m_rxAntenna; }
+    QString txAntenna()   const { return m_txAntenna; }
+    bool    isLocked()    const { return m_locked; }
+    bool    qskOn()       const { return m_qsk; }
     bool    nbOn()        const { return m_nb; }
     bool    nrOn()        const { return m_nr; }
     bool    anfOn()       const { return m_anf; }
@@ -53,6 +56,9 @@ public:
     void setAudioGain(float gain);
     void setRfGain(float gain);
     void setRxAntenna(const QString& ant);
+    void setTxAntenna(const QString& ant);
+    void setLocked(bool locked);
+    void setQsk(bool on);
     void setNb(bool on);
     void setNr(bool on);
     void setAnf(bool on);
@@ -74,6 +80,9 @@ signals:
     void activeChanged(bool active);
     void txSliceChanged(bool tx);
     void rxAntennaChanged(const QString& ant);
+    void txAntennaChanged(const QString& ant);
+    void lockedChanged(bool locked);
+    void qskChanged(bool on);
     void nbChanged(bool on);
     void nrChanged(bool on);
     void anfChanged(bool on);
@@ -94,8 +103,11 @@ private:
     float   m_rfGain{0.0f};
     float   m_audioGain{50.0f};
 
-    // RX DSP state
+    // Slice control state
     QString m_rxAntenna{"ANT1"};
+    QString m_txAntenna{"ANT1"};
+    bool    m_locked{false};
+    bool    m_qsk{false};
     bool    m_nb{false};
     bool    m_nr{false};
     bool    m_anf{false};

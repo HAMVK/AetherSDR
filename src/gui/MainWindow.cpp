@@ -88,6 +88,10 @@ MainWindow::MainWindow(QWidget* parent)
         m_audio.setRxVolume(v / 100.0f);
     });
 
+    // ── Antenna list from radio → applet panel ─────────────────────────────
+    connect(&m_radioModel, &RadioModel::antListChanged,
+            m_appletPanel, &AppletPanel::setAntennaList);
+
     // ── Audio level meter ──────────────────────────────────────────────────
     connect(&m_audio, &AudioEngine::levelChanged,
             this, &MainWindow::onAudioLevel);

@@ -21,7 +21,7 @@ static QWidget* placeholder(const QString& text)
 
 AppletPanel::AppletPanel(QWidget* parent) : QWidget(parent)
 {
-    setFixedWidth(240);
+    setFixedWidth(260);
 
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0, 0, 0, 0);
@@ -52,6 +52,11 @@ AppletPanel::AppletPanel(QWidget* parent) : QWidget(parent)
 void AppletPanel::setSlice(SliceModel* slice)
 {
     m_rxApplet->setSlice(slice);
+}
+
+void AppletPanel::setAntennaList(const QStringList& ants)
+{
+    m_rxApplet->setAntennaList(ants);
 }
 
 } // namespace AetherSDR

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QStringList>
 
 class QTabWidget;
 
@@ -21,6 +22,9 @@ public:
 
     // Attach the active slice to all slice-dependent applets.
     void setSlice(SliceModel* slice);
+
+    // Forward the radio's antenna list to all relevant applets.
+    void setAntennaList(const QStringList& ants);
 
     RxApplet* rxApplet() { return m_rxApplet; }
 

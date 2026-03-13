@@ -31,6 +31,9 @@ public:
     // Attach to a slice; pass nullptr to detach.
     void setSlice(SliceModel* slice);
 
+    // Set the available antenna list (from ant_list in panadapter status).
+    void setAntennaList(const QStringList& ants);
+
 signals:
     // Emitted when the user adjusts the AF gain slider (0–100).
     void afGainChanged(int value);
@@ -44,11 +47,18 @@ private:
     void updateFilterButtons();
     void updateAgcButtons();
     static QString formatHz(int hz);
+    static QString formatFilterWidth(int lo, int hi);
 
     SliceModel* m_slice{nullptr};
+    QStringList m_antList{"ANT1", "ANT2"};   // populated from ant_list key
 
-    // ANT
-    QPushButton* m_antBtns[2]{};   // [0]=ANT1  [1]=ANT2
+    // ── Header row ────────────────────────────────────────────────────────
+    QLabel*      m_sliceBadge{nullptr};   // "A" / "B" / "C" / "D"
+    QPushButton* m_lockBtn{nullptr};      // tune-lock toggle
+    QPushButton* m_rxAntBtn{nullptr};     // RX antenna dropdown (blue)
+    QPushButton* m_txAntBtn{nullptr};     // TX antenna dropdown (red)
+    QLabel*      m_filterWidthLbl{nullptr}; // current filter width e.g. "2.7K"
+    QPushButton* m_qskBtn{nullptr};       // QSK toggle
 
     // Filter presets (Hz widths)
     static constexpr int FILTER_WIDTHS[6] = {1800, 2100, 2400, 2700, 3300, 6000};

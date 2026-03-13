@@ -290,6 +290,14 @@ void RadioModel::handlePanadapterStatus(const QMap<QString, QString>& kvs)
     }
     Q_UNUSED(levelChanged)
 
+    if (kvs.contains("ant_list")) {
+        const QStringList ants = kvs["ant_list"].split(',', Qt::SkipEmptyParts);
+        if (ants != m_antList) {
+            m_antList = ants;
+            emit antListChanged(m_antList);
+        }
+    }
+
     // Configure the panadapter once we know its ID.
     // x_pixels is not settable on firmware v1.4.0.0 (always returns 5000002D),
     // so we only set fps and disable averaging.

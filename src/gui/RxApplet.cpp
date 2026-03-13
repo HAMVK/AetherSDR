@@ -8,6 +8,8 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QFrame>
+#include <QMenu>
+#include <QAction>
 
 namespace AetherSDR {
 
@@ -69,24 +71,94 @@ void RxApplet::buildUI()
     root->setContentsMargins(6, 6, 6, 6);
     root->setSpacing(5);
 
-    // ── Antenna ───────────────────────────────────────────────────────────────
+    // ── Header: slice badge | lock | RX ant | TX ant | filter width | QSK ──
     {
         auto* row = new QHBoxLayout;
-        row->setSpacing(4);
-        auto* lbl = new QLabel("ANT:");
-        lbl->setFixedWidth(30);
-        row->addWidget(lbl);
+        row->setSpacing(3);
 
-        const char* labels[] = {"ANT1", "ANT2"};
-        for (int i = 0; i < 2; ++i) {
-            m_antBtns[i] = mkToggle(labels[i]);
-            m_antBtns[i]->setStyleSheet(kBlueActive);
-            const QString ant = (i == 0) ? "ANT1" : "ANT2";
-            connect(m_antBtns[i], &QPushButton::clicked, this, [this, ant](bool) {
-                if (m_slice) m_slice->setRxAntenna(ant);
-            });
-            row->addWidget(m_antBtns[i]);
-        }
+        // Slice letter badge (A/B/C/D)
+        m_sliceBadge = new QLabel("A");
+        m_sliceBadge->setFixedSize(22, 22);
+        m_sliceBadge->setAlignment(Qt::AlignCenter);
+        m_sliceBadge->setStyleSheet(
+            "QLabel { background: #0070c0; color: #ffffff; "
+            "border-radius: 3px; font-weight: bold; font-size: 11px; }");
+        row->addWidget(m_sliceBadge);
+
+        // Tune-lock toggle (🔓 unlocked / 🔒 locked)
+        m_lockBtn = new QPushButton("\U0001F513");  // 🔓
+        m_lockBtn->setCheckable(true);
+        m_lockBtn->setFixedSize(22, 22);
+        m_lockBtn->setFlat(true);
+        m_lockBtn->setStyleSheet(
+            "QPushButton { font-size: 13px; padding: 0; }"
+            "QPushButton:checked { color: #4488ff; }");
+        connect(m_lockBtn, &QPushButton::toggled, this, [this](bool locked) {
+            m_lockBtn->setText(locked ? "\U0001F512" : "\U0001F513");
+            if (m_slice) m_slice->setLocked(locked);
+        });
+        row->addWidget(m_lockBtn);
+
+        // RX antenna dropdown (blue)
+        m_rxAntBtn = new QPushButton("ANT1");
+        m_rxAntBtn->setFixedHeight(22);
+        m_rxAntBtn->setStyleSheet(
+            "QPushButton { color: #4488ff; border: 1px solid #4488ff; "
+            "border-radius: 3px; padding: 0 4px; font-size: 11px; }");
+        connect(m_rxAntBtn, &QPushButton::clicked, this, [this] {
+            QMenu menu(this);
+            const QString cur = m_slice ? m_slice->rxAntenna() : "";
+            for (const QString& ant : m_antList) {
+                QAction* act = menu.addAction(ant);
+                act->setCheckable(true);
+                act->setChecked(ant == cur);
+            }
+            const QAction* sel = menu.exec(
+                m_rxAntBtn->mapToGlobal(QPoint(0, m_rxAntBtn->height())));
+            if (sel && m_slice)
+                m_slice->setRxAntenna(sel->text());
+        });
+        row->addWidget(m_rxAntBtn, 1);
+
+        // TX antenna dropdown (red)
+        m_txAntBtn = new QPushButton("ANT1");
+        m_txAntBtn->setFixedHeight(22);
+        m_txAntBtn->setStyleSheet(
+            "QPushButton { color: #ff4444; border: 1px solid #ff4444; "
+            "border-radius: 3px; padding: 0 4px; font-size: 11px; }");
+        connect(m_txAntBtn, &QPushButton::clicked, this, [this] {
+            QMenu menu(this);
+            const QString cur = m_slice ? m_slice->txAntenna() : "";
+            for (const QString& ant : m_antList) {
+                QAction* act = menu.addAction(ant);
+                act->setCheckable(true);
+                act->setChecked(ant == cur);
+            }
+            const QAction* sel = menu.exec(
+                m_txAntBtn->mapToGlobal(QPoint(0, m_txAntBtn->height())));
+            if (sel && m_slice)
+                m_slice->setTxAntenna(sel->text());
+        });
+        row->addWidget(m_txAntBtn, 1);
+
+        // Filter width label (e.g. "2.7K")
+        m_filterWidthLbl = new QLabel("2.7K");
+        m_filterWidthLbl->setFixedHeight(22);
+        m_filterWidthLbl->setAlignment(Qt::AlignCenter);
+        m_filterWidthLbl->setStyleSheet(
+            "QLabel { color: #00c8ff; font-size: 11px; font-weight: bold; "
+            "border: 1px solid #1e3e5e; border-radius: 3px; padding: 0 3px; }");
+        row->addWidget(m_filterWidthLbl);
+
+        // QSK toggle
+        m_qskBtn = mkToggle("QSK");
+        m_qskBtn->setFixedWidth(36);
+        m_qskBtn->setStyleSheet(kAmberActive + " QPushButton { font-size: 11px; }");
+        connect(m_qskBtn, &QPushButton::toggled, this, [this](bool on) {
+            if (m_slice) m_slice->setQsk(on);
+        });
+        row->addWidget(m_qskBtn);
+
         root->addLayout(row);
     }
 
@@ -329,25 +401,66 @@ void RxApplet::setSlice(SliceModel* slice)
     if (m_slice) connectSlice(m_slice);
 }
 
+void RxApplet::setAntennaList(const QStringList& ants)
+{
+    if (ants.isEmpty()) return;
+    m_antList = ants;
+    // Update button labels if the current antenna is still valid
+    if (m_slice) {
+        m_rxAntBtn->setText(m_slice->rxAntenna());
+        m_txAntBtn->setText(m_slice->txAntenna());
+    }
+}
+
 void RxApplet::connectSlice(SliceModel* s)
 {
-    // Antenna
+    // ── Header ─────────────────────────────────────────────────────────────
+
+    // Slice badge letter (0→A, 1→B, 2→C, 3→D)
+    const QChar letter = QChar('A' + s->sliceId());
+    m_sliceBadge->setText(QString(letter));
+
+    // Lock
     {
-        const bool ant1 = (s->rxAntenna() != "ANT2");
-        QSignalBlocker b0(m_antBtns[0]), b1(m_antBtns[1]);
-        m_antBtns[0]->setChecked(ant1);
-        m_antBtns[1]->setChecked(!ant1);
+        QSignalBlocker b(m_lockBtn);
+        m_lockBtn->setChecked(s->isLocked());
+        m_lockBtn->setText(s->isLocked() ? "\U0001F512" : "\U0001F513");
     }
-    connect(s, &SliceModel::rxAntennaChanged, this, [this](const QString& ant) {
-        QSignalBlocker b0(m_antBtns[0]), b1(m_antBtns[1]);
-        m_antBtns[0]->setChecked(ant != "ANT2");
-        m_antBtns[1]->setChecked(ant == "ANT2");
+    connect(s, &SliceModel::lockedChanged, this, [this](bool locked) {
+        QSignalBlocker b(m_lockBtn);
+        m_lockBtn->setChecked(locked);
+        m_lockBtn->setText(locked ? "\U0001F512" : "\U0001F513");
     });
 
-    // Filter
+    // RX antenna
+    m_rxAntBtn->setText(s->rxAntenna());
+    connect(s, &SliceModel::rxAntennaChanged, this, [this](const QString& ant) {
+        m_rxAntBtn->setText(ant);
+    });
+
+    // TX antenna
+    m_txAntBtn->setText(s->txAntenna());
+    connect(s, &SliceModel::txAntennaChanged, this, [this](const QString& ant) {
+        m_txAntBtn->setText(ant);
+    });
+
+    // Filter width label
+    m_filterWidthLbl->setText(formatFilterWidth(s->filterLow(), s->filterHigh()));
+
+    // QSK
+    {
+        QSignalBlocker b(m_qskBtn);
+        m_qskBtn->setChecked(s->qskOn());
+    }
+    connect(s, &SliceModel::qskChanged, this, [this](bool on) {
+        QSignalBlocker b(m_qskBtn); m_qskBtn->setChecked(on);
+    });
+
+    // ── Filter ─────────────────────────────────────────────────────────────
     updateFilterButtons();
-    connect(s, &SliceModel::filterChanged, this, [this](int, int) {
+    connect(s, &SliceModel::filterChanged, this, [this](int lo, int hi) {
         updateFilterButtons();
+        m_filterWidthLbl->setText(formatFilterWidth(lo, hi));
     });
 
     // AGC
@@ -429,6 +542,14 @@ void RxApplet::disconnectSlice(SliceModel* s)
 QString RxApplet::formatHz(int hz)
 {
     return (hz >= 0 ? "+" : "") + QString::number(hz) + " Hz";
+}
+
+QString RxApplet::formatFilterWidth(int lo, int hi)
+{
+    const int w = hi - lo;
+    if (w <= 0) return "?";
+    if (w >= 1000) return QString::number(w / 1000.0, 'f', 1) + "K";
+    return QString::number(w);
 }
 
 void RxApplet::applyFilterPreset(int widthHz)

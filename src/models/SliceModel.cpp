@@ -49,6 +49,28 @@ void SliceModel::setRxAntenna(const QString& ant)
     emit rxAntennaChanged(ant);
 }
 
+void SliceModel::setTxAntenna(const QString& ant)
+{
+    if (m_txAntenna == ant) return;
+    m_txAntenna = ant;
+    sendCommand(QString("slice set %1 txant=%2").arg(m_id).arg(ant));
+    emit txAntennaChanged(ant);
+}
+
+void SliceModel::setLocked(bool locked)
+{
+    m_locked = locked;
+    sendCommand(QString("slice set %1 locked=%2").arg(m_id).arg(locked ? 1 : 0));
+    emit lockedChanged(locked);
+}
+
+void SliceModel::setQsk(bool on)
+{
+    m_qsk = on;
+    sendCommand(QString("transmit set qsk_enabled=%1").arg(on ? 1 : 0));
+    emit qskChanged(on);
+}
+
 void SliceModel::setNb(bool on)
 {
     m_nb = on;
@@ -157,10 +179,22 @@ void SliceModel::applyStatus(const QMap<QString, QString>& kvs)
     if (kvs.contains("audio_gain"))
         m_audioGain = kvs["audio_gain"].toFloat();
 
-    // RX DSP state
+    // Slice control state
     if (kvs.contains("rxant")) {
         m_rxAntenna = kvs["rxant"];
         emit rxAntennaChanged(m_rxAntenna);
+    }
+    if (kvs.contains("txant")) {
+        m_txAntenna = kvs["txant"];
+        emit txAntennaChanged(m_txAntenna);
+    }
+    if (kvs.contains("locked")) {
+        m_locked = kvs["locked"] == "1";
+        emit lockedChanged(m_locked);
+    }
+    if (kvs.contains("qsk")) {
+        m_qsk = kvs["qsk"] == "1";
+        emit qskChanged(m_qsk);
     }
     if (kvs.contains("nb")) {
         m_nb = kvs["nb"] == "1";
